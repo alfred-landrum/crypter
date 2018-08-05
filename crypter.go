@@ -12,18 +12,26 @@ import (
 	"golang.org/x/crypto/nacl/secretbox"
 )
 
+// Sizes and minimums set by secretbox
+const (
+	KeySize = 32
+
+	// 24 bytes for nonce + minimum secretbox length
+	Overhead = 24 + secretbox.Overhead
+)
+
 // A Box is generated from a Key, and can encrypt & decrypt "small" messages,
 // using nacl/secretbox.
 type Box struct {
-	Key [32]byte
+	Key [KeySize]byte
 }
 
-// A Key is a base64 encoded 32 byte sequence.
+// A Key is a base64 RawURLEncoded 32 byte sequence.
 type Key string
 
 // NewKey generates a new appropriately sized key.
 func NewKey() Key {
-	var k [32]byte
+	var k [KeySize]byte
 	_, err := io.ReadFull(rand.Reader, k[:])
 	if err != nil {
 		panic(fmt.Errorf("rand.Reader failed %v", err))
@@ -37,9 +45,9 @@ func NewBox(key Key) (*Box, error) {
 	b := &Box{}
 	sbytes, err := base64.RawURLEncoding.DecodeString(string(key))
 	if err != nil {
-		return nil, errors.New("bad key")
+		return nil, errors.New("bad key encoding")
 	}
-	if len(sbytes) != 32 {
+	if len(sbytes) != KeySize {
 		return nil, errors.New("bad key length")
 	}
 
@@ -60,7 +68,7 @@ func (b *Box) Encrypt(data []byte) []byte {
 
 // Decrypt uses secretbox.Open to authenticate & decrypt data.
 func (b *Box) Decrypt(data []byte) ([]byte, error) {
-	if len(data) < (24 + secretbox.Overhead) {
+	if len(data) < Overhead {
 		// must be at least the size of nonce + minimal secretbox length
 		return nil, errors.New("data too small")
 	}

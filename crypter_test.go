@@ -14,10 +14,10 @@ func TestCrypter(t *testing.T) {
 	clear := "small clear"
 
 	_, err := NewBox(badKey1)
-	require.Error(t, err, "bad key")
+	require.Error(t, err, "bad key length")
 
 	_, err = NewBox(badKey2)
-	require.Error(t, err, "bad key")
+	require.Error(t, err, "bad key encoding")
 
 	box, err := NewBox(goodKey)
 	require.NoError(t, err)
